@@ -521,7 +521,7 @@ class FeatureCalculator:
         X = np.asarray(all_scaled).T
         return X
     
-    def get_uncertain_frqs_table(self, frqs_dict, qualified_features):
+    def get_unk_frqs_table(self, frqs_dict, qualified_features):
         features_table = []
         for feature_type, feature in qualified_features:
             features_vect = []

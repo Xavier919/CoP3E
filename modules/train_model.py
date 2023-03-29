@@ -20,7 +20,7 @@ class TrainModel:
     def __init__(self):
           
         self.lr_param_grid = {"solver": ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
-                              "penalty": ['l1','l2'],
+                              "penalty": ['l2'],
                               "C": [100, 10, 1.0, 0.1, 0.01]}
     
         self.svm_param_grid = {"kernel": ['linear', 'poly', 'rbf', 'sigmoid'],
@@ -83,7 +83,6 @@ class TrainModel:
             plt.scatter(recall, precision, color='grey', s=0.5)
         mean_precision /= 10
         mean_auc = auc(mean_recall, mean_precision)
-        #ax.plot(np.flip(mean_recall), np.flip(mean_precision), color='black', lw=2)
         plt.plot(np.flip(mean_recall), np.flip(mean_precision), color='black', lw=1)
         ax.set_xlabel('recall')
         ax.set_ylabel('precision')
@@ -119,7 +118,7 @@ class TrainModel:
         ax.set_ylabel('accuracy')
         ax.set_ylim([0.4, 1.0])
         ax.set_xlim([0.0, 1.0])
-        ax.set_title('Accuracy vs. Cutoff Value Curve')
+        ax.set_title('Accuracy vs cutoff value curve')
         plt.show()
 
     def roc_curve(self, y_true, y_proba):
@@ -133,7 +132,28 @@ class TrainModel:
         plt.xlabel("false positive rate")
         plt.ylabel("true positive rate")
         plt.legend(['ROC AUC: {}'.format(round(roc_auc, 3))])
-        plt.savefig("ROC curve.svg")
+        plt.title('Receiving operating characteristic curve')
+        plt.show()
+
+    def two_graph_roc_curve(self, y_true, y_proba):
+        sensitivity_all, specificity_all = [], []
+        thresh = np.arange(0, 1, 0.01)
+        for i in range(0, len(y_true), len(y_true)//10):
+            sensitivity, specificity = [], []
+            end_index = min(i+len(y_true)//10, len(y_true))
+            for t in range(len(thresh)):
+                y_pred = np.where(y_proba[i:end_index] >= thresh[t], 1, 0)
+                tn, fp, fn, tp = confusion_matrix(y_true[i:end_index], y_pred).ravel()
+                sensitivity.append(tp/(tp+fn)), specificity.append(tn/(tn+fp))
+            plt.scatter(thresh, sensitivity, s=1, color='blue')
+            plt.scatter(thresh, specificity, s=1, color='red')
+            sensitivity_all.append(sensitivity), specificity_all.append(specificity)
+        plt.plot(thresh, np.mean(sensitivity_all, axis=0), color='blue', label='Sensitivity')
+        plt.plot(thresh, np.mean(specificity_all, axis=0), color='red', label='Specificity')
+        plt.xlabel("Coding probability cutoff")
+        plt.ylabel("Performance")
+        plt.legend()
+        plt.title('Two-graph ROC curve')
         plt.show()
 
     def get_stacking(self, base_model1, base_model2, meta_model):
@@ -141,3 +161,8 @@ class TrainModel:
         level1 = meta_model
         model = StackingClassifier(estimators=level0, final_estimator=level1)
         return model
+
+    def CoP3E_predict(self, ensembl_pseudogene, X_unk, model):
+        trxps = [x[0] for x in ensembl_pseudogene.items() if x[1]['coding'] == 'uncertain']
+        preds = [x[1] for x in model.predict_proba(X_unk)]
+        return list(zip(trxps, preds))
