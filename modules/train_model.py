@@ -15,6 +15,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import f1_score
 from sklearn.metrics import auc, precision_recall_curve
 from modules.feature_calculator import FeatureCalculator
+import shap
 
 class TrainModel:
     def __init__(self):
@@ -166,3 +167,37 @@ class TrainModel:
         trxps = [x[0] for x in ensembl_pseudogene.items() if x[1]['coding'] == 'uncertain']
         preds = [x[1] for x in model.predict_proba(X_unk)]
         return list(zip(trxps, preds))
+    
+    def get_shap_values(self, model, X, bg_size=100, n_instances=1000):
+        """ Calculate the shap value for a given model and dataset. """
+
+        np.random.seed(1)
+        background = shap.kmeans(X, bg_size)   # Background data for SHAP calculations
+        explainer = shap.KernelExplainer(model.predict, background)
+    
+        if n_instances == -1:  # Use all instances
+            X_shap = X
+        else:
+            # Randomly select n_instances
+            X_shap = X[np.random.randint(0, high=X.shape[0], size=n_instances)]
+
+        shap_values = explainer.shap_values(X_shap)
+
+        return shap_values
+
+
+    def plot_SHAP(self, SHAP_values, X, feature_names, n_features=20, save_path=None):
+        """ Plot the shap values for a given dataset. """
+
+        # Convert feature tuple to string for plotting
+        clean_features = [f'{type}: {seq}' for type, seq in feature_names]
+
+        # Plot the shap values
+        shap.summary_plot(SHAP_values, X, feature_names=clean_features,
+                        show=False, max_display=n_features)
+        
+        if save_path is not None:
+            plt.savefig(save_path, bbox_inches='tight')
+            plt.close()
+        else:
+            plt.show()
