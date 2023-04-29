@@ -189,7 +189,7 @@ class BuildDataset:
                 has_pred_orf, evidence = None, None
                 n_orfs = len(self.find_orfs(sequence, 90))
                 orf_accessions = []
-                if n_orfs > 0:
+                if n_orfs > 0 or line["Transcript type"] == 'protein_coding':
                     has_pred_orf = 1
                     if trx in op_trx and trx in self.OP_trx_altprot:
                         evidence = self.get_max_evidence_level(trx)
@@ -202,6 +202,7 @@ class BuildDataset:
                                     'has_pred_orf': has_pred_orf,
                                     'gene_name': line["Gene name"],
                                     'biotype': self.biotype_grouping[line["Transcript type"]],
+                                    'biotype_ungroup': line["Transcript type"],
                                     'orf_accessions': orf_accessions,
                                     'evidence': evidence,
                                     'sequence': sequence}
